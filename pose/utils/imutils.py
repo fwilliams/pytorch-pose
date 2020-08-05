@@ -4,7 +4,9 @@ import torch
 import torch.nn as nn
 import numpy as np
 import scipy.misc
-
+import imageio
+import PIL
+from PIL import Image
 from .misc import *
 
 def im_to_numpy(img):
@@ -21,7 +23,10 @@ def im_to_torch(img):
 
 def load_image(img_path):
     # H x W x C => C x H x W
-    return im_to_torch(scipy.misc.imread(img_path, mode='RGB'))
+    im = np.asarray(imageio.imread(img_path, pilmode='RGB'))
+    # print(type(im), im.shape)
+    return im_to_torch(im)
+    # return im_to_torch(scipy.misc.imread(img_path, mode='RGB'))
 
 def resize(img, owidth, oheight):
     img = im_to_numpy(img)
@@ -130,6 +135,11 @@ def show_sample(inputs, target):
         imshow(out)
         plt.show()
 
+def imresize(img, size):
+    # print(type(img), img.shape, img.dtype)
+    pil_img = Image.fromarray((img * 255).astype(np.uint8))
+    return np.array(pil_img.resize(size, PIL.Image.BICUBIC)).astype(img.dtype) / 255.0
+    
 def sample_with_heatmap(inp, out, num_rows=2, parts_to_show=None):
     inp = to_numpy(inp * 255)
     out = to_numpy(out)
@@ -147,13 +157,13 @@ def sample_with_heatmap(inp, out, num_rows=2, parts_to_show=None):
 
     full_img = np.zeros((img.shape[0], size * (num_cols + num_rows), 3), np.uint8)
     full_img[:img.shape[0], :img.shape[1]] = img
-
-    inp_small = scipy.misc.imresize(img, [size, size])
+    inp_small = imresize(img, (size, size))
+    # inp_small = scipy.misc.imresize(img, [size, size])
 
     # Set up heatmap display for each part
     for i, part in enumerate(parts_to_show):
         part_idx = part
-        out_resized = scipy.misc.imresize(out[part_idx], [size, size])
+        out_resized = imresize(out[part_idx], (size, size)) #scipy.misc.imresize(out[part_idx], [size, size])
         out_resized = out_resized.astype(float)/255
         out_img = inp_small.copy() * .3
         color_hm = color_heatmap(out_resized)

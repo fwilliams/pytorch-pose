@@ -205,6 +205,7 @@ def train(train_loader, model, criterion, optimizer, debug=False, flip=True):
         acc = accuracy(output, target, idx)
 
         if debug: # visualize groundtruth and predictions
+            plt.figure(figsze=(20.0, 10.0))
             gt_batch_img = batch_with_heatmap(input, target)
             pred_batch_img = batch_with_heatmap(input, output)
             if not gt_win or not pred_win:
@@ -217,8 +218,10 @@ def train(train_loader, model, criterion, optimizer, debug=False, flip=True):
             else:
                 gt_win.set_data(gt_batch_img)
                 pred_win.set_data(pred_batch_img)
-            plt.pause(.05)
-            plt.draw()
+            plt.savefig("fig_%d.png" % i)
+            plt.close('all')
+            # plt.pause(.05)
+            # plt.draw()
 
         # measure accuracy and record loss
         losses.update(loss.item(), input.size(0))
@@ -278,12 +281,28 @@ def validate(val_loader, model, criterion, num_classes, debug=False, flip=True):
             output = model(input)
             score_map = output[-1].cpu() if type(output) == list else output.cpu()
             if flip:
+                print("FLIP")
                 flip_input = torch.from_numpy(fliplr(input.clone().numpy())).float().to(device)
                 flip_output = model(flip_input)
                 flip_output = flip_output[-1].cpu() if type(flip_output) == list else flip_output.cpu()
                 flip_output = flip_back(flip_output)
                 score_map += flip_output
 
+            plt.figure(figsize=(80.0, 80.0))
+            for im_i in range(4):
+                for im_j in range(4):
+                    im_plt_idx = im_i * 4 + im_j
+                    plt.subplot(4, 4, im_plt_idx + 1)
+                    extent = (-1.0, 1.0, -1.0, 1.0)
+                    plt.imshow(input[0].cpu().permute(1, 2, 0).numpy(), extent=extent)
+                    plt.imshow(score_map[0, im_plt_idx].numpy(), extent=extent, cmap='viridis', alpha=0.5, interpolation='bilinear')
+            plt.savefig("heatmap_%d.png" % i)
+            plt.close("all")
+            #plt.figure(figsize=(10.0, 10.0))
+            #plt.savefig("input_%d.png" % i)
+            #plt.close("all")
+
+            print(score_map.shape, input.shape)
 
 
             if type(output) == list:  # multiple output
@@ -303,6 +322,7 @@ def validate(val_loader, model, criterion, num_classes, debug=False, flip=True):
 
 
             if debug:
+                plt.figure(figsize=(20.0, 10.0))
                 gt_batch_img = batch_with_heatmap(input, target)
                 pred_batch_img = batch_with_heatmap(input, score_map)
                 if not gt_win or not pred_win:
@@ -313,8 +333,10 @@ def validate(val_loader, model, criterion, num_classes, debug=False, flip=True):
                 else:
                     gt_win.set_data(gt_batch_img)
                     pred_win.set_data(pred_batch_img)
-                plt.pause(.05)
-                plt.draw()
+                plt.savefig("val_fig_%d.png" % i)
+                plt.close("all")
+                # plt.pause(.05)
+                # plt.draw()
 
             # measure accuracy and record loss
             losses.update(loss.item(), input.size(0))
